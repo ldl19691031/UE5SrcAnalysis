@@ -1,0 +1,709 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>Brief Analysis of Nanite</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 3px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+}
+
+@page {
+	margin: 1in;
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.column-list {
+	display: flex;
+	justify-content: space-between;
+}
+
+.column {
+	padding: 0 1em;
+}
+
+.column:first-child {
+	padding-left: 0;
+}
+
+.column:last-child {
+	padding-right: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+	border-collapse: collapse;
+}
+
+table {
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	text-indent: -1.7em;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-block;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.5em 1em;
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1.25em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, YuMincho, "Yu Mincho", "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Songti TC", "Songti SC", "SimSun", "Nanum Myeongjo", NanumMyeongjo, Batang, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC', 'Noto Sans CJK KR'; }
+
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC', 'Noto Sans Mono CJK KR'; }
+
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, YuMincho, "Yu Mincho", "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Songti TC", "Songti SC", "SimSun", "Nanum Myeongjo", NanumMyeongjo, Batang, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC', 'Noto Sans CJK KR'; }
+
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC', 'Noto Sans Mono CJK KR'; }
+
+.highlight-default {
+}
+.highlight-gray {
+	color: rgb(155,154,151);
+}
+.highlight-brown {
+	color: rgb(100,71,58);
+}
+.highlight-orange {
+	color: rgb(217,115,13);
+}
+.highlight-yellow {
+	color: rgb(223,171,1);
+}
+.highlight-teal {
+	color: rgb(15,123,108);
+}
+.highlight-blue {
+	color: rgb(11,110,153);
+}
+.highlight-purple {
+	color: rgb(105,64,165);
+}
+.highlight-pink {
+	color: rgb(173,26,114);
+}
+.highlight-red {
+	color: rgb(224,62,62);
+}
+.highlight-gray_background {
+	background: rgb(235,236,237);
+}
+.highlight-brown_background {
+	background: rgb(233,229,227);
+}
+.highlight-orange_background {
+	background: rgb(250,235,221);
+}
+.highlight-yellow_background {
+	background: rgb(251,243,219);
+}
+.highlight-teal_background {
+	background: rgb(221,237,234);
+}
+.highlight-blue_background {
+	background: rgb(221,235,241);
+}
+.highlight-purple_background {
+	background: rgb(234,228,242);
+}
+.highlight-pink_background {
+	background: rgb(244,223,235);
+}
+.highlight-red_background {
+	background: rgb(251,228,228);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(55, 53, 47, 0.6);
+	fill: rgba(55, 53, 47, 0.6);
+}
+.block-color-brown {
+	color: rgb(100,71,58);
+	fill: rgb(100,71,58);
+}
+.block-color-orange {
+	color: rgb(217,115,13);
+	fill: rgb(217,115,13);
+}
+.block-color-yellow {
+	color: rgb(223,171,1);
+	fill: rgb(223,171,1);
+}
+.block-color-teal {
+	color: rgb(15,123,108);
+	fill: rgb(15,123,108);
+}
+.block-color-blue {
+	color: rgb(11,110,153);
+	fill: rgb(11,110,153);
+}
+.block-color-purple {
+	color: rgb(105,64,165);
+	fill: rgb(105,64,165);
+}
+.block-color-pink {
+	color: rgb(173,26,114);
+	fill: rgb(173,26,114);
+}
+.block-color-red {
+	color: rgb(224,62,62);
+	fill: rgb(224,62,62);
+}
+.block-color-gray_background {
+	background: rgb(235,236,237);
+}
+.block-color-brown_background {
+	background: rgb(233,229,227);
+}
+.block-color-orange_background {
+	background: rgb(250,235,221);
+}
+.block-color-yellow_background {
+	background: rgb(251,243,219);
+}
+.block-color-teal_background {
+	background: rgb(221,237,234);
+}
+.block-color-blue_background {
+	background: rgb(221,235,241);
+}
+.block-color-purple_background {
+	background: rgb(234,228,242);
+}
+.block-color-pink_background {
+	background: rgb(244,223,235);
+}
+.block-color-red_background {
+	background: rgb(251,228,228);
+}
+.select-value-color-default { background-color: rgba(206,205,202,0.5); }
+.select-value-color-gray { background-color: rgba(155,154,151, 0.4); }
+.select-value-color-brown { background-color: rgba(140,46,0,0.2); }
+.select-value-color-orange { background-color: rgba(245,93,0,0.2); }
+.select-value-color-yellow { background-color: rgba(233,168,0,0.2); }
+.select-value-color-green { background-color: rgba(0,135,107,0.2); }
+.select-value-color-blue { background-color: rgba(0,120,223,0.2); }
+.select-value-color-purple { background-color: rgba(103,36,222,0.2); }
+.select-value-color-pink { background-color: rgba(221,0,129,0.2); }
+.select-value-color-red { background-color: rgba(255,0,26,0.2); }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+	
+</style></head><body><article id="94be60f2-9243-4ba3-ae62-fa4bcf7d9379" class="page sans"><header><h1 class="page-title">Brief Analysis of Nanite</h1></header><div class="page-body"><p id="4551fdeb-5f2c-4d54-a50c-6695acc2056d" class="">For the global pipeline of Unreal Engine 5, please check this: <a href="https://www.notion.so/Brief-Analysis-of-UE5-Rendering-Pipeline-feedcb9174aa4af2af936fbb02a9e390">https://www.notion.so/Brief-Analysis-of-UE5-Rendering-Pipeline-feedcb9174aa4af2af936fbb02a9e390</a></p><p id="dc531001-a188-4b03-972b-9ffa1b8d11ce" class="">In this article, I will write my own analysis of Nanite&#x27;s source code. I only want to touch on the basic progress but not try to analyze the ideas behind the Nanite. This much beyond my skill. For the ideas behind Nanite, I recommend waiting for the official SIGGRAPH presentation.</p><p id="b4db2d88-897e-4196-96c3-fe53b1a1e743" class="">This is the offical page of Nanite : <a href="https://docs.unrealengine.com/5.0/en-US/RenderingFeatures/Nanite/">https://docs.unrealengine.com/5.0/en-US/RenderingFeatures/Nanite/</a></p><p id="f4b177e9-637b-43fa-aef6-a6f204ea0e28" class="">Also, this is also anther good analysis of Nanite: <a href="http://www.elopezr.com/a-macro-view-of-nanite/">http://www.elopezr.com/a-macro-view-of-nanite/</a></p><h1 id="a6a3e577-dd9b-4315-b144-08f0deefff91" class="">Basic concepts</h1><p id="51b8fbd0-a7e7-4c67-877b-77760087191b" class="">Nanite contains two parts: a pre-calculation system for preprocessing the meshes, generate mesh clusters and LODs; and a runtime system for loading and rendering.</p><figure id="748b85e3-917d-4107-ac04-786c435684dd" class="image"><a href="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Untitled.png"><img style="width:403px" src="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Untitled.png"/></a></figure><p id="f696ac15-03df-49d6-bce3-1bbf174fc6b6" class="">So, the clusters will be the basic elements of a Nanite mesh. During the rendering, Nanite needs to:</p><ul id="17fc5753-ba83-44e9-9549-fbf916dbf421" class="bulleted-list"><li>Culling: both instance culling and primitive culling</li></ul><ul id="8915d4bd-8876-4330-b6ce-7168d5e57214" class="bulleted-list"><li>Change the LOD: Nanite changes LOD level <strong>cluster-wise</strong>, which is different from many instance-wise LOD approaches. 
+You can see only some of the clusters have changed:<figure id="9163abab-90f5-4f97-97ac-51b7b97b0d4c" class="image"><a href="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Nanite1.gif"><img style="width:634px" src="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Nanite1.gif"/></a></figure></li></ul><ul id="79ca23ca-48a1-4722-8736-b4e9bb38be95" class="bulleted-list"><li>Rendering: By hardware and software rasterizer ( I discussed a little in the rendering pipeline analysis)</li></ul><p id="0b09b31f-ff6b-44c6-a589-006735b0bd5a" class="">In order to explain the mini-map of Nanite, I created this image:</p><figure id="95b6b90d-7dc8-4b8e-ae3e-9a78c35d7c09" class="image"><a href="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Untitled%201.png"><img style="width:1368px" src="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Untitled%201.png"/></a></figure><p id="753120c6-988f-48d1-a908-4b8f17bb90bf" class="">First, Nanite generates a set of clusters based on the triangles, whichi becomes the leaf clusters.</p><p id="65d03595-9253-4e83-a82d-7f2ab7d7a50e" class="">Then, it will select a set of clusters as a new cluster group, and merge this group into a large cluster.(2 and 3)</p><p id="a934f13c-ceaa-4cc8-8885-3b78af7edf63" class="">Then, simplify this cluster, reduce the polygons but keep the boundary.(4)</p><p id="2a169151-a735-49ba-9ebf-bfb7a81f8d38" class="">Then, do a graph partition to split this large cluster into small parts. The parts are larger than the original clusters in (2)</p><p id="0d2b4082-fb58-40d7-af5a-1110337e3f39" class="">You can see cluster set B has the same boundary as a cluster set A. This means we can switch from A to B to reduce polygon without creating any seam on the boundary.</p><p id="5636cdf8-8f3d-4404-a697-f02dedd4bac3" class="">So, when can we apply this switch safely? Nanite creates a depenency graph (DAG) to repesent (6)</p><p id="8547e69d-e512-4aea-9b98-3e047a1bf6cb" class="">Finally, we break cluster set B and got a set of clusters again. Repeat these steps until the total cluster number less than a given threshold.</p><p id="893397e5-e61b-4994-a445-5627991d9378" class="">
+</p><p id="068dbc23-d61c-4c29-9581-886bf4227968" class="">So, in theory, switching LODs will never cause some empty space in the mesh&#x27;s surface, because every switch will be boundary safe. </p><p id="7066cbcb-e544-45e5-9964-3c689db22733" class="">
+</p><h1 id="253f637a-2f40-43c3-b799-f1925b35fa54" class="">Pre-processing</h1><p id="47f3ac98-61a7-4706-b014-70060b2dc82b" class="">The pre-processing happens in ue&#x27;s editor. When you enable Nanite for a static mesh, Nanite will build cluster data for this mesh and encode them, write to disk.</p><p id="89394e63-d7d6-43d6-aaed-8dce33a1eb66" class="">This processing happens in BuildNaniteData function in NaniteBuilder.cpp.</p><p id="81ba4697-ace4-48bf-b872-ab30ed0953b1" class="">The pre-processing outputs are an array of clusters and an array of goups.</p><h2 id="8f547226-afca-4e62-a81b-2580e9a3a234" class="">Cluster Data Structure</h2><p id="67e20244-6486-4b0b-8ffe-de40aafa019d" class="">So, let&#x27;s first look at the data that each cluster holds:</p><pre id="8a20f64f-5b26-43e4-b3cd-17d668ff1650" class="code"><code>	
+TArray&lt; float &gt;		Verts;
+	TArray&lt; uint32 &gt;	Indexes;
+
+	FBounds		Bounds;
+	FSphere		SphereBounds;
+	FSphere		LODBounds;
+
+	uint32		GroupIndex			= MAX_uint32;
+	uint32		GroupPartIndex		= MAX_uint32;
+	uint32		GeneratingGroupIndex= MAX_uint32;</code></pre><p id="9f2460c9-82c2-45f3-9fcd-0de6725af19a" class="">As a real example, this is a cluster data:</p><figure id="737f052e-7b99-437e-8bac-7dd10866e9c2" class="image"><a href="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Untitled%202.png"><img style="width:712px" src="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Untitled%202.png"/></a></figure><p id="c89ad85a-527d-4a76-be45-04f7150757dd" class="">You can see, each cluster contains its own triangles and bounds. Also, it contains its boundary edges and external edges.</p><p id="6bbd691a-d44d-48b2-af15-6ce6debb1e91" class="">Beyond this, we have cluster groups, which contains a set of cluster groups:</p><pre id="e59efdf1-ddf1-485f-8113-a4d2953ba53f" class="code"><code>FSphere				Bounds;
+	FSphere				LODBounds;
+	float				MinLODError;
+	float				MaxParentLODError;
+	int32				MipLevel;
+	uint32				MeshIndex;
+	TArray&lt; uint32 &gt;	Children;</code></pre><h2 id="3efaba15-4009-419f-9b85-f0dbcb119bd3" class="">Cluster Data Connect</h2><p id="12a75aa0-c504-43b3-9ce5-6b0e59e0247e" class="">So, with a cluster group as middle data, two levels of clusters&#x27; reference is like this:</p><p id="03c9305d-f6b7-43b4-bcb6-ba1a6243cd57" class=""> </p><figure id="4374e6e5-5c0e-4b0c-8691-dc6cd9cb88af" class="image"><a href="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Untitled%203.png"><img style="width:555px" src="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Untitled%203.png"/></a></figure><h1 id="f5f2ccb1-7a5f-4cd7-8a79-341fd57d8e47" class="">Encoding</h1><p id="d7a539b9-c04c-4467-9bd3-fbc8e1dd2590" class="">The pre-processed Nanite data ( clusters and cluster groups) will be encoded and send to GPU memory for accessing by computing shaders.</p><p id="2436c1b8-34a0-4854-b8d7-258a99d6bd3c" class="">The encoding code is the function Nanite::Encode in NaniteEncode.cpp.</p><p id="2a12534f-97d9-4d67-bd3c-45d415c540a7" class="">Now we need to deal with two different kinds of data: the clusters, which contain triangles and more, are much more complex and huge, and the groups which are references and small.</p><h3 id="46d9be68-af8c-45ca-9374-e6fa3de0566e" class="">Cluster Encoding</h3><p id="3c0df889-d829-4bf0-941e-6881e5df2901" class="">For the clusters, Nanite encodes them into pages. The size of a page is fixed, so a group may be split into different pages. To achieve this, Nanite uses FClusterGroupPart to record.</p><p id="f5b09443-ff85-4db4-815c-aa04c0c72cba" class="">Page Assign<div class="indented"><p id="86a2b680-d3ea-4907-affe-cd05b6439ad8" class="">When a new page allocated, or we start recording a new group, a new cluster group part will be created. And the clusters will be set to the cluster group parts.</p><p id="94caac8f-c723-4ec9-9897-6cca7a840333" class="">(a green box is a cluster)</p><figure id="39b2e802-4a38-4257-9420-d725c5319a21" class="image"><a href="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Untitled%204.png"><img style="width:997px" src="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Untitled%204.png"/></a></figure></div></p><p id="fb1feac3-61ef-495e-80c8-92e5dfeb3c08" class="">Hierarchies build<div class="indented"><p id="37f43724-1dcd-47d5-a1aa-b07fa9a85843" class="">First we need to know the max mip level by just find the highest mip level number of all groups.</p><p id="a1ca274c-49ac-4740-9924-d227a422f356" class="">But in the same mip level, we may still have many nodes:<div class="indented"><figure id="d6fcca3e-1e6a-4cfb-b4e0-6aa77aa250d6" class="image"><a href="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Untitled%205.png"><img style="width:189px" src="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Untitled%205.png"/></a></figure></div></p><p id="21eace7f-4dc4-472c-9b3f-d3198eff9c3f" class="">So, instead of just use these level-based nodes, Nanite build a BVH tree to organize them into a tree of nodes that contains much smaller children for each node. In my test, the max children number is 8.</p><p id="11b1ad7d-e5a1-4135-aedf-97e15c87634b" class="">After this step, in my test, 138 nodes are added as BVH node to group those nodes.</p><figure id="5b688f58-a66d-466c-b0aa-84ddfff8e9ba" class="image"><a href="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Untitled%206.png"><img style="width:1252px" src="Brief%20Analysis%20of%20Nanite%20748b85e3917d4107ac04786c435684dd/Untitled%206.png"/></a></figure><p id="985e2b1c-2f20-4974-a5d0-57089dbd2718" class="">If you enable the BVH_BUILD_WRITE_GRAPHVIZ macro, you can visualize the tree like this.</p><p id="564a76c8-1eb9-4195-83b1-1221278762bb" class="">Since the detail info is not so important, I just show a small screenshot.</p><p id="5586af90-2567-408a-a9fa-c66016b21059" class="">Be careful, this tree is <strong>NOT </strong>the same tree of cluster groups and clusters. This is a tree based on ClusterGroupPart. </p></div></p><p id="e46f4876-b8dd-47da-b869-a73bffb124d3" class="">Pack Hierarchies<div class="indented"><p id="b432f610-9a87-43c1-ba92-876fdbf78ad2" class="">Nanite gets all the hierarchy nodes( In my test, the number is 139 (138 + 1) ) and packed them into FPackedHierarchyNode for GPU to access.</p><pre id="4108d92e-c4e6-4a8b-a557-6ed7afeb3f2d" class="code"><code>struct FPackedHierarchyNode
+{
+	FSphere		LODBounds[MAX_BVH_NODE_FANOUT];
+	
+	struct
+	{
+		FVector		BoxBoundsCenter;
+		uint32		MinLODError_MaxParentLODError;
+	} Misc0[MAX_BVH_NODE_FANOUT];
+
+	struct
+	{
+		FVector		BoxBoundsExtent;
+		uint32		ChildStartReference;
+	} Misc1[MAX_BVH_NODE_FANOUT];
+	
+	struct
+	{
+		uint32		ResourcePageIndex_NumPages_GroupPartSize;
+	} Misc2[MAX_BVH_NODE_FANOUT];
+};</code></pre><p id="a799c85a-4d4d-4603-92d2-aab624d05a25" class="">Just a little about &#x27;for GPU to access&#x27;: FPackedHierarchyNode data will be upload to the HierarchyBuffer in GPU memory. Then decode by this code</p><pre id="6ee49e82-e3a1-4d8a-ac0b-44cf1284d9ce" class="code"><code>FHierarchyNodeSlice GetHierarchyNodeSlice( uint NodeIndex, uint ChildIndex )
+{
+	const uint NodeSize = ( 4 + 4 + 4 + 1 ) * 4 * MAX_BVH_NODE_FANOUT;
+
+	uint BaseAddress = NodeIndex * NodeSize;
+
+	FHierarchyNodeSlice Node;
+	Node.LODBounds			=	asfloat(	HierarchyBuffer.Load4( BaseAddress + 16 * ChildIndex) );
+	
+	uint4 Misc0				=	HierarchyBuffer.Load4( BaseAddress + (MAX_BVH_NODE_FANOUT * 16) + 16 * ChildIndex);
+	uint4 Misc1				=	HierarchyBuffer.Load4( BaseAddress + (MAX_BVH_NODE_FANOUT * 32) + 16 * ChildIndex);
+	uint  Misc2				=	HierarchyBuffer.Load ( BaseAddress + (MAX_BVH_NODE_FANOUT * 48) +  4 * ChildIndex);
+	Node.BoxBoundsCenter	=	asfloat( Misc0.xyz );
+	Node.BoxBoundsExtent	=	asfloat( Misc1.xyz );
+
+	Node.MinLODError		=	f16tof32( Misc0.w );
+	Node.MaxParentLODError	=	f16tof32( Misc0.w &gt;&gt; 16 );
+	Node.ChildStartReference=	Misc1.w;
+	Node.bLoaded			=	Misc1.w != 0xFFFFFFFFu;
+
+	uint ResourcePageIndex_NumPages_GroupPartSize = Misc2;
+	Node.NumChildren		=	BitFieldExtractU32(ResourcePageIndex_NumPages_GroupPartSize, MAX_CLUSTERS_PER_GROUP_BITS, 0);
+	Node.NumPages			=	BitFieldExtractU32(ResourcePageIndex_NumPages_GroupPartSize, MAX_GROUP_PARTS_BITS, MAX_CLUSTERS_PER_GROUP_BITS);
+	Node.StartPageIndex		=	BitFieldExtractU32(ResourcePageIndex_NumPages_GroupPartSize, MAX_RESOURCE_PAGES_BITS, MAX_CLUSTERS_PER_GROUP_BITS + MAX_GROUP_PARTS_BITS);
+	Node.bEnabled			=	ResourcePageIndex_NumPages_GroupPartSize != 0u;
+	Node.bLeaf				=	ResourcePageIndex_NumPages_GroupPartSize != 0xFFFFFFFFu;
+
+	return Node;
+}</code></pre><p id="b485cc1c-b0ae-4b51-80d9-c7f8bf059107" class="">After decode, shader will get this data:</p><pre id="0b50a1a3-21af-49db-be38-53b8a24d2ffd" class="code"><code>struct FHierarchyNodeSlice
+{
+	float4	LODBounds;
+	float3	BoxBoundsCenter;
+	float3	BoxBoundsExtent;
+	float	MinLODError;
+	float	MaxParentLODError;
+	uint	ChildStartReference;	// Can be node (index) or cluster (page:cluster)
+	uint	NumChildren;
+	uint	StartPageIndex;
+	uint	NumPages;
+	bool	bEnabled;
+	bool	bLoaded;
+	bool	bLeaf;
+};</code></pre><p id="f50d6beb-0855-4ebf-92d7-c322604bd477" class="">I will talk decoding and usage in another part. So I just let you know how this data structure will be used.</p></div></p></div></article></body></html>

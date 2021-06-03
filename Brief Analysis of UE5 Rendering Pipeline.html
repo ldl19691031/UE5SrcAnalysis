@@ -1,0 +1,667 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>Brief Analysis of UE5 Rendering Pipeline</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 3px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+}
+
+@page {
+	margin: 1in;
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.column-list {
+	display: flex;
+	justify-content: space-between;
+}
+
+.column {
+	padding: 0 1em;
+}
+
+.column:first-child {
+	padding-left: 0;
+}
+
+.column:last-child {
+	padding-right: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+	border-collapse: collapse;
+}
+
+table {
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	text-indent: -1.7em;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-block;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.5em 1em;
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1.25em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, YuMincho, "Yu Mincho", "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Songti TC", "Songti SC", "SimSun", "Nanum Myeongjo", NanumMyeongjo, Batang, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC', 'Noto Sans CJK KR'; }
+
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC', 'Noto Sans Mono CJK KR'; }
+
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, YuMincho, "Yu Mincho", "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Songti TC", "Songti SC", "SimSun", "Nanum Myeongjo", NanumMyeongjo, Batang, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC', 'Noto Sans CJK KR'; }
+
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC', 'Noto Sans Mono CJK KR'; }
+
+.highlight-default {
+}
+.highlight-gray {
+	color: rgb(155,154,151);
+}
+.highlight-brown {
+	color: rgb(100,71,58);
+}
+.highlight-orange {
+	color: rgb(217,115,13);
+}
+.highlight-yellow {
+	color: rgb(223,171,1);
+}
+.highlight-teal {
+	color: rgb(15,123,108);
+}
+.highlight-blue {
+	color: rgb(11,110,153);
+}
+.highlight-purple {
+	color: rgb(105,64,165);
+}
+.highlight-pink {
+	color: rgb(173,26,114);
+}
+.highlight-red {
+	color: rgb(224,62,62);
+}
+.highlight-gray_background {
+	background: rgb(235,236,237);
+}
+.highlight-brown_background {
+	background: rgb(233,229,227);
+}
+.highlight-orange_background {
+	background: rgb(250,235,221);
+}
+.highlight-yellow_background {
+	background: rgb(251,243,219);
+}
+.highlight-teal_background {
+	background: rgb(221,237,234);
+}
+.highlight-blue_background {
+	background: rgb(221,235,241);
+}
+.highlight-purple_background {
+	background: rgb(234,228,242);
+}
+.highlight-pink_background {
+	background: rgb(244,223,235);
+}
+.highlight-red_background {
+	background: rgb(251,228,228);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(55, 53, 47, 0.6);
+	fill: rgba(55, 53, 47, 0.6);
+}
+.block-color-brown {
+	color: rgb(100,71,58);
+	fill: rgb(100,71,58);
+}
+.block-color-orange {
+	color: rgb(217,115,13);
+	fill: rgb(217,115,13);
+}
+.block-color-yellow {
+	color: rgb(223,171,1);
+	fill: rgb(223,171,1);
+}
+.block-color-teal {
+	color: rgb(15,123,108);
+	fill: rgb(15,123,108);
+}
+.block-color-blue {
+	color: rgb(11,110,153);
+	fill: rgb(11,110,153);
+}
+.block-color-purple {
+	color: rgb(105,64,165);
+	fill: rgb(105,64,165);
+}
+.block-color-pink {
+	color: rgb(173,26,114);
+	fill: rgb(173,26,114);
+}
+.block-color-red {
+	color: rgb(224,62,62);
+	fill: rgb(224,62,62);
+}
+.block-color-gray_background {
+	background: rgb(235,236,237);
+}
+.block-color-brown_background {
+	background: rgb(233,229,227);
+}
+.block-color-orange_background {
+	background: rgb(250,235,221);
+}
+.block-color-yellow_background {
+	background: rgb(251,243,219);
+}
+.block-color-teal_background {
+	background: rgb(221,237,234);
+}
+.block-color-blue_background {
+	background: rgb(221,235,241);
+}
+.block-color-purple_background {
+	background: rgb(234,228,242);
+}
+.block-color-pink_background {
+	background: rgb(244,223,235);
+}
+.block-color-red_background {
+	background: rgb(251,228,228);
+}
+.select-value-color-default { background-color: rgba(206,205,202,0.5); }
+.select-value-color-gray { background-color: rgba(155,154,151, 0.4); }
+.select-value-color-brown { background-color: rgba(140,46,0,0.2); }
+.select-value-color-orange { background-color: rgba(245,93,0,0.2); }
+.select-value-color-yellow { background-color: rgba(233,168,0,0.2); }
+.select-value-color-green { background-color: rgba(0,135,107,0.2); }
+.select-value-color-blue { background-color: rgba(0,120,223,0.2); }
+.select-value-color-purple { background-color: rgba(103,36,222,0.2); }
+.select-value-color-pink { background-color: rgba(221,0,129,0.2); }
+.select-value-color-red { background-color: rgba(255,0,26,0.2); }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+	
+</style></head><body><article id="feedcb91-74aa-4af2-af93-6fbb02a9e390" class="page sans"><header><h1 class="page-title">Brief Analysis of UE5 Rendering Pipeline</h1></header><div class="page-body"><p id="8e521a2e-470f-412a-88f6-78c7c9d65a53" class="">This is a brief analysis of the rendering pipeline of unreal engine 5. This article is based on the capture result by RenderDoc. As <strong>I&#x27;m not a developer of Epic</strong>,  this article may contain mistakes. And the contents are NOT the true ideas of Epic but just my own understanding. If I mislead someone, please forgive me. And if you have a better explanation or want to point out some mistakes, please make comments. </p><p id="3b78faf7-8bca-48af-958f-364c4c55ce0e" class="">(I&#x27;m not a English native speaker so I may make some language mistakes)</p><nav id="87e56bba-7386-4acb-9557-02567af094ca" class="block-color-gray table_of_contents"><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#a7fc4c5a-44c7-438a-a158-4d57585217e4">Prepare</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#03c1f248-66f5-4c62-96c6-ebe1bcb8217f">Render Pipeline Minimap</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#d4780a03-ea58-40c7-a00f-c018b80cd9e3">GPU-Driven Culling</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#cde56506-1bc3-4fb3-8cee-fdf22d123ba4">Scene Instance Data Structure</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#bc94beea-3485-4c9c-b36a-8d9dffd91a68">Data Updating</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#fca0103a-a130-4233-b7e5-6895b3db1f27">Instance Culling</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#fe81684f-50df-45b9-a896-2f01874ad892">Nanite</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#fa2cebee-d391-4a91-9e36-86c74bc82209">Visibility Buffer Building</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#0acb47ff-6a8b-4fd6-91c1-fa6c3e123ca6">Visibility Buffer</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#0b51f07f-54fe-4a09-926e-fd60251dbe96">Visibility Buffer Rasterize</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#0aa7a54a-9106-428e-ba78-dceacf62e031">Nanite to GBuffer</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#31414948-a3ae-40a6-9cd3-87649cf9aced">Lumen</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#9d734495-6823-4e7e-9dda-bff008bd3258">Lumen Scene Lighting</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#2af87bc1-6e30-40b7-a09a-7c4e86916bd8">Lumen Indirect Lighting And AO</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#681a0ce9-5eb5-42d6-b3fc-89440d54cbac">Tracing With SDF</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#54dc263b-2ae4-44c6-bb4e-62444e12a68e">Reference</a></div></nav><h1 id="a7fc4c5a-44c7-438a-a158-4d57585217e4" class="">Prepare</h1><p id="db83b41b-3d84-4c47-a84a-37b2cf92e8b6" class="">In this part, I will explain how to capture the debug frame. If you are familiar with the usage of Render Doc in UE4, you can skip this part. </p><p id="63918915-608a-4078-88a9-8c645b5fb1e4" class="">In order to capture one frame of UE5 with debug info, you need to:</p><ol id="7d6fea37-80cb-4a6c-9589-a8514a6a6413" class="numbered-list" start="1"><li>Download Render Doc : <a href="https://renderdoc.org/">https://renderdoc.org/</a></li></ol><ol id="52280965-ea9c-455e-a22d-345e5fe57ebf" class="numbered-list" start="2"><li>Enable Render Doc plugin in UE5&#x27;s plugin settings
+After you enable the plugin, you need to restart the engine.<figure id="d28218a5-c137-4cbc-93a5-0d05c9a8639b" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled.png"><img style="width:1666px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled.png"/></a></figure></li></ol><ol id="3a20ba92-fee4-4b67-ab96-bc89fb463c62" class="numbered-list" start="3"><li>Modify the ConsoleVariables.ini under the Engine/Config folder. In my computer, the path is C:\Program Files\Epic Games\UE_5.0EA\Engine\Config.
+You need to remove the &#x27;;&#x27; before those two lines:<pre id="7bd95994-1336-4a2c-96b2-3caacac2e654" class="code"><code>; Uncomment when running with a graphical debugger (but not when profiling)
+r.Shaders.Optimize=0
+; When this is enabled, shaders will have extra debugging info. This could change patch sizes, uniqueness, etc and will recompile the shaders
+r.Shaders.KeepDebugInfo=1</code></pre></li></ol><ol id="cd584164-19dd-4127-ac0f-d530ad512978" class="numbered-list" start="4"><li>Create a short cut or a bat file to start the engine. I create this short cut:<figure id="2d944cf6-47b8-432b-bafb-e61d5464c968" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%201.png"><img style="width:419px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%201.png"/></a></figure><pre id="54f9ab26-f545-4a5c-abf9-44bb1e643db4" class="code"><code>&quot;C:\Program Files\Epic Games\UE_5.0EA\Engine\Binaries\Win64\UnrealEditor.exe&quot; &quot;C:\Users\LUO\Documents\Unreal Projects\UE5TestProject\UE5TestProject.uproject&quot; -d3ddebug</code></pre><p id="94333961-8517-4927-a306-898630c60a45" class="">You need to add two parameters: one is the path to your test project, another one is &#x27;-d3ddebug&#x27;.</p><p id="f63ef849-92b7-410e-a9be-5030892efb08" class="">Then, use this shortcut or bat file to start your engine. This may take a long time if this is your first time enabling shader to debug flags. </p></li></ol><ol id="6dbf5898-990f-4a62-a42c-36875cf9cc83" class="numbered-list" start="5"><li>Capture one frame<ol id="25034ac3-c325-4bd7-9714-09b47c375cbc" class="numbered-list" start="1"><li>You can change some items in the default scene. I recommend to add at least one Nanite mesh.</li></ol><ol id="567ee602-0d33-474d-9d85-ccb2a9a7eaf9" class="numbered-list" start="2"><li>Press this button to capture one frame<figure id="e5fd52d0-ac00-48d5-814e-0f4ca8918a6e" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%202.png"><img style="width:827px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%202.png"/></a></figure></li></ol><ol id="59d67164-b523-476e-9c13-663451e58e13" class="numbered-list" start="3"><li>The Render Doc will be automatically opened, and you can load that capture data.<figure id="dfedef8f-a09e-4052-8470-2bebf34bde4a" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%203.png"><img style="width:1772px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%203.png"/></a></figure></li></ol></li></ol><h1 id="03c1f248-66f5-4c62-96c6-ebe1bcb8217f" class="">Render Pipeline Minimap</h1><div id="5f2cc987-717e-46b9-aa80-e75a6cc87aa7" class="column-list"><div id="6f7869f5-527b-453a-8664-f2e7d5500920" style="width:50%" class="column"><figure id="6951cb65-f8c6-4f6f-b8e5-15550a51809d" class="image"><a href="https://kroki.io/plantuml/svg/eNpdT80KwjAMvu8pctSDL7DdpjgEkeLYA4Q124qzLU2L-PaG_cjYLfl-E44YYpY3XmMkqFQDdUuWiiw_p3GEm-WItiWGwzUkjukNreDG9scig86FVwb5hXwcQAXyyLzAgD0aK-QDrZHknYasnsyLt0xdRwGehPor1XfTD3EWBzllVpbIBGpybwrW_A37z652sfWA2n1ktZqCvLA2zaNyHE8-OHmWJ0RkPyIKYRc="><img style="width:400px" src="https://kroki.io/plantuml/svg/eNpdT80KwjAMvu8pctSDL7DdpjgEkeLYA4Q124qzLU2L-PaG_cjYLfl-E44YYpY3XmMkqFQDdUuWiiw_p3GEm-WItiWGwzUkjukNreDG9scig86FVwb5hXwcQAXyyLzAgD0aK-QDrZHknYasnsyLt0xdRwGehPor1XfTD3EWBzllVpbIBGpybwrW_A37z652sfWA2n1ktZqCvLA2zaNyHE8-OHmWJ0RkPyIKYRc="/></a></figure></div><div id="35750e6b-9dea-4d09-b0cc-d15fb824fb6f" style="width:50%" class="column"><p id="f7d4416c-fa91-4793-982f-a9750f447f99" class="">Here is a brief map of the whole pipeline. </p><p id="898bf9a2-b9e0-4c45-b10a-0e9e35771841" class=""><strong>Logically </strong>the Nanite rendering is not related to the traditional deferred rendering passes.</p><p id="fd8af333-bd88-4a35-8099-90989391b9bf" class="">So, as a summary, the new UE5 pipeline contains those new things:</p><ol id="4e53e15b-8be1-4c38-b38e-58ca08c0945d" class="numbered-list" start="1"><li>A new GPU-driven culling system</li></ol><ol id="4bcc9ddc-3672-4e49-9f87-067246fedfb4" class="numbered-list" start="2"><li>Nanite </li></ol><ol id="603aad92-894e-4ad1-a96f-983e3c6db501" class="numbered-list" start="3"><li>Lumen lighting.</li></ol><p id="073c7a94-851d-4178-bb4d-7d793e587723" class="">I will provide my guess about those three points in this article.</p></div></div><h1 id="d4780a03-ea58-40c7-a00f-c018b80cd9e3" class="">GPU-Driven Culling</h1><h2 id="cde56506-1bc3-4fb3-8cee-fdf22d123ba4" class="">Scene Instance Data Structure</h2><p id="65195895-5c06-492a-a684-204e90b6ccfb" class="">In order to achieve GPU-Driven Culling, UE5 needs to save the scene&#x27;s representation on the GPU side.  The core data structure we are dealing with is &#x27;GPUScene_InstanceData&#x27;, which contains data in this structure:</p><pre id="1d5650c3-943e-46f6-9232-e9b2378d61dc" class="code"><code>struct FInstanceSceneData
+{
+	float4x4 LocalToWorld;
+	float4x4 PrevLocalToWorld;
+	float4x4 WorldToLocal;
+	float4   NonUniformScale;
+	float4   InvNonUniformScaleAndDeterminantSign;
+	float3   LocalBoundsCenter;
+	uint     PrimitiveId;
+	float3   LocalBoundsExtent;
+	uint     LastUpdateSceneFrameNumber;
+	uint     NaniteRuntimeResourceID;
+	uint     NaniteHierarchyOffset;
+	bool     NaniteHasImposter;
+	// TODO: bool     CastShadows;
+	float    PerInstanceRandom;
+	float4   LightMapAndShadowMapUVBias;
+	bool     ValidInstance;
+};</code></pre><p id="1a414b53-8c35-4031-9ade-9efc437f8866" class="">
+</p><h2 id="bc94beea-3485-4c9c-b36a-8d9dffd91a68" class="">Data Updating</h2><div id="8ee4dcc7-2305-4d7c-becd-a7e25e33a636" class="column-list"><div id="5d7d5838-cce9-4719-9970-496749c59d06" style="width:50%" class="column"><figure id="0ecafb41-f2f2-4ee6-bd48-efd37372f331" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%204.png"><img style="width:327px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%204.png"/></a></figure></div><div id="ebf817aa-bf64-49ae-bb0b-a391528396b6" style="width:50%" class="column"><p id="77564394-259e-44e2-8528-cbf44716dbf1" class=""><strong>Input</strong>: Instance Upload Buffer</p><p id="ab9c3d03-af5b-4090-863c-c8fc375ffb85" class=""><strong>Output</strong>: GPUScene_InstanceData</p><p id="28b8e84a-f459-414b-83b8-749b1bb828c5" class="">The game logic executes on the CPU side, so the updating of the transform info also happens on the CPU side. </p></div></div><p id="f4336a74-4f28-48bf-a380-dcfa28c4e47c" class="">The new GPU-Driven Culling system has been added to UE5, compared with the old CPU-driven parallel-for-based culling system.</p><p id="98b086fb-85ca-46dd-84b3-374ad3d13b26" class="">On the CPU side, it will prepare the <strong>Update</strong> data. And a compute shader will update the GPUScene_Instance data based on that info.</p><h2 id="fca0103a-a130-4233-b7e5-6895b3db1f27" class="">Instance Culling</h2><div id="5a118157-9f82-4b90-85ec-47c105f32232" class="column-list"><div id="d26e01d1-7a08-45d2-aca9-88c19792a190" style="width:50%" class="column"><figure id="006d1908-0e73-4300-82ea-d3c5c558ff2d" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%205.png"><img style="width:307px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%205.png"/></a></figure></div><div id="ab5d6aff-7171-4ea3-b4f6-371983d0cee0" style="width:50%" class="column"><p id="0e997dd8-03be-4f7b-ba87-fbdc5046f5a6" class=""><strong>Input</strong>: GPUScene_InstanceData</p><p id="ddf8e523-aa0d-4e97-8f2f-c1a164611bba" class=""><strong>Output</strong>: InstanceCulling.VisibleInstanceFlags</p><p id="28f6a2b0-4a5a-4844-9aaa-65f9d89291de" class="">Instance culling happens after the GPU scene updating. This pass takes the bounding box of each instance and does the frustum culling.</p></div></div><figure id="29dc88cb-abfb-4b91-8add-dfa2711c8e41" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%206.png"><img style="width:1154px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%206.png"/></a></figure><p id="8bc61a15-d81e-4eaa-bbf7-27d02e232651" class="">InstanceCulling.VisibleInstanceFlags buffer is just a packed bit buffer, contains instance visibility info as a single bit.</p><h1 id="fe81684f-50df-45b9-a896-2f01874ad892" class="">Nanite</h1><div id="66b9c604-3c17-47b4-b3c7-765bc8088de3" class="column-list"><div id="7eecdcbe-76e4-47fa-be4a-5ebd545f9c4e" style="width:50%" class="column"><figure id="073f0000-4fdd-4189-a37a-dfcece976d8a" class="image"><a href="https://kroki.io/plantuml/svg/eNpdkE1OAzEMhfc5hZew4ALTXfmpkBAatfQA1sSTiWidyPYIAeLumMmAKnbO8_P3nqKGYqE71ohGsOuPcBiIaRO62_l0gkdWQx5I4epBZrX5DIPrmdP1JsBY5DVAd0fVJuiFKqquMmDCzKE6PVsuDM_I2Wg1wefK36MaSf74Cbw_Z4PGekFJZM76CsRxiVlTtvM4ksCeML77zVNOk7VocUZzblEJ-qXLRZWuNYCL7R979w97mDCWN39y9HacfpPa2Be1myrFv0UXxW3fL0dwbg=="><img style="width:400px" src="https://kroki.io/plantuml/svg/eNpdkE1OAzEMhfc5hZew4ALTXfmpkBAatfQA1sSTiWidyPYIAeLumMmAKnbO8_P3nqKGYqE71ohGsOuPcBiIaRO62_l0gkdWQx5I4epBZrX5DIPrmdP1JsBY5DVAd0fVJuiFKqquMmDCzKE6PVsuDM_I2Wg1wefK36MaSf74Cbw_Z4PGekFJZM76CsRxiVlTtvM4ksCeML77zVNOk7VocUZzblEJ-qXLRZWuNYCL7R979w97mDCWN39y9HacfpPa2Be1myrFv0UXxW3fL0dwbg=="/></a></figure></div><div id="7fd8ef68-75b7-4ca1-b2a4-dd8be6a903ab" style="width:50%" class="column"><p id="227e29b8-be20-4157-91da-3fd9adeedad3" class="">Nanite is a new and famous feature of UE5 which makes ue can render a Lot of polygons.</p><p id="1432b694-300c-4160-888f-b7a6b7336312" class="">Be careful, Nanite do not use Mesh Shader in DX12 or tessellation. </p><p id="d7e00509-70fd-4662-91a0-7d5be836a0ff" class="">I cannot explain details about Nanite since I&#x27;m also waiting for the official explaination of Nanite&#x27;s idea. So in this part I will explain just my pure understanding of Nanite based on the rendering analysis.</p><p id="7b2c2625-9e75-45de-85ea-633ac32680ee" class="">The rendering of one Nanite mesh has been divided into two-stage: the visibility buffer building and the G-buffer emit.</p></div></div><p id="b40ddaa5-bfa9-461b-a441-0b853f5138bb" class="">Since the Nanite rendering has been splited into many parts, I will first give you a mini map:</p><figure id="d7f9b542-89c6-453b-8ff3-bb2e69b14547" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%207.png"><img style="width:1042px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%207.png"/></a></figure><p id="f4d36d32-0181-4805-bccc-d516c09aa633" class="">Please think like this: the Nanite will create some transparent rectangle cards in the rough shape of the mesh on the screen. And it will generate some textures for this to generate the depth, stencil, and G-Buffer. </p><h2 id="fa2cebee-d391-4a91-9e36-86c74bc82209" class="">Visibility Buffer Building</h2><p id="d16e0647-1219-4fa8-b39c-ca636e0fa457" class="">Nanite Pre Pass works like a deferred rendering&#x27;s G-Buffer building pass but the output is just a <strong>visibility buffer</strong>, and it contains two rasterize paths: hardware and software.</p><h3 id="0acb47ff-6a8b-4fd6-91c1-fa6c3e123ca6" class="">Visibility Buffer</h3><p id="e1f2ee7b-b7cb-46ca-afcf-c1afea43ba06" class="">Not like G-Buffer-based deferred rendering&#x27;s G-Buffer, the visibility buffer is quite simple. It contains the information to refer to a triangle as a triangle index with some additional info. </p><pre id="091ca678-8599-48b2-a460-9dd91c8cc682" class="code"><code>void UnpackVisPixel(
+	UlongType Pixel,
+	out uint DepthInt,
+	out uint VisibleClusterIndex, 
+	out uint TriIndex
+	)
+{
+	const uint2 Unpacked = UnpackUlongType(Pixel);
+	VisibleClusterIndex = Unpacked.x &gt;&gt; 7;
+	TriIndex = Unpacked.x &amp; 0x7F;
+	DepthInt = Unpacked.y;
+
+	VisibleClusterIndex--;
+}</code></pre><p id="8598ad6b-198a-42da-9f95-c513ebb2eff0" class="">The visibility buffer looks like this:</p><figure id="cc156104-eb68-4411-a2f5-f00e3192fa6a" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%208.png"><img style="width:553px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%208.png"/></a></figure><h3 id="0b51f07f-54fe-4a09-926e-fd60251dbe96" class="">Visibility Buffer Rasterize</h3><div id="653c95a7-b7de-4f98-bc81-029e27f40910" class="column-list"><div id="b8c26e4e-c422-40fa-99f7-3e057eccfe0d" style="width:50%" class="column"><figure id="8482767a-1547-42e7-b5a0-0818dbe538b4" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%209.png"><img style="width:238px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%209.png"/></a></figure></div><div id="4fdf85a0-68f4-40f3-935e-7eee37aa5295" style="width:50%" class="column"><p id="2b6d6fcc-4e95-49ed-aa27-c34af342b842" class="">The Nanite split the rasterize of the visibility buffer into 2 paths: hardware and software. The reason is avoiding <strong>quad overdraw</strong>. or quad overshading </p></div></div><p id="f32a972d-07fd-4635-9458-4f830626a31f" class="">If you are not familiar with quad overdraw, please google &#x27;quad overdraw&#x27;. I will give a trial explanation: if you have a lot of small triangles (smaller than 2x2 pixels on the screen) your performance will be really bad.</p><p id="97dbbfee-8e11-409a-a13e-6e5ef83eeea9" class="">So for the large triangles, the Nanite will choose hardware and for the micro polygons, it will choose a software rasterizer.</p><p id="7acef04d-bb92-4393-b617-f61059ef234d" class="">For more info about the rasterizer, please check : MicropolyRasterize in Rasterizer.usf.</p><p id="35727c59-c875-4cad-8e05-7596f0565016" class="">(I feel very sorry, I cannot understand the rasterize codes of the Nanite, please forgive me )</p><h2 id="0aa7a54a-9106-428e-ba78-dceacf62e031" class="">Nanite to GBuffer</h2><p id="c9aae977-6891-499c-847b-0660926628e6" class="">With visibility buffer, we can access the original triangle data, so we can also get the material info. The next step is to write to the G-Buffer in the traditional deferred pipeline.</p><p id="a2b16e9c-a0fb-47a7-935d-fc41fd61c811" class="">The Nanite will generate a set of 2D cards face to the screen, with a low-resolution(32 x 20) material info texture like this:</p><figure id="88902c27-117c-4aa9-b334-ad7ab58f00b7" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2010.png"><img style="width:1300px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2010.png"/></a></figure><p id="49d634b2-b6f2-4b2d-94ce-af7169c6112e" class="">The 2D cards are like this:</p><figure id="ea85b0d8-01e6-41fe-9032-4b48be1dfeb7" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2011.png"><img style="width:437px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2011.png"/></a></figure><p id="e572bb0e-fe7d-4ee2-b241-53580ac1d5e0" class="">So, yes, the Nanite results will be rendered like 2D sprites. Do you remember the enemies in the Doom?</p><p id="c296f642-4109-4939-a6ef-df86b6ae5ee4" class="">Although the resolution is low, we can still get the clear edge based on the visibility buffer so everything will be fine.</p><p id="09dad173-b854-46c3-9f6b-e5faeb582086" class="">Then, since this is just a masked sprite, we can directly render them like we did in deferred pipeline:</p><figure id="7028d23c-e2f3-456b-8c61-ca8dcfa8d814" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2012.png"><img style="width:353px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2012.png"/></a></figure><h1 id="31414948-a3ae-40a6-9cd3-87649cf9aced" class="">Lumen</h1><p id="08919e24-5303-46b8-a592-1647a6d7fc87" class="">The new GI solution, Lumen, is a mixed global illumination system, contains screen space ray tracing and signed distance field tracing.  I really recommend reading the official technical detail page: <a href="https://docs.unrealengine.com/5.0/en-US/RenderingFeatures/Lumen/TechOverview/">https://docs.unrealengine.com/5.0/en-US/RenderingFeatures/Lumen/TechOverview/</a></p><p id="4a738f8c-db1f-403a-8a5f-f9796af2649d" class="">Since the official page already contains enough info for understanding the basic concepts, I will not spend too much time here.</p><div id="c1a260b0-b160-4105-a95d-15ddc5d57f12" class="column-list"><div id="888ecec5-a960-4c36-a458-d5d22b940c3a" style="width:50%" class="column"><figure id="8ab08527-8eb2-4ce3-b3ba-134afbbc643b" class="image"><a href="https://docs.unrealengine.com/5.0/Images/RenderingFeatures/Lumen/TechOverview/2_ScreenTraces_srtmode_On.webp"><img style="width:1526px" src="https://docs.unrealengine.com/5.0/Images/RenderingFeatures/Lumen/TechOverview/2_ScreenTraces_srtmode_On.webp"/></a></figure></div><div id="82019f1c-532d-4b5c-9b3f-915c66d4df25" style="width:50%" class="column"><figure id="42d2ab38-b584-415f-8bb7-c4a72da84cdd" class="image"><a href="https://docs.unrealengine.com/5.0/Images/RenderingFeatures/Lumen/TechOverview/2_ScreenTraces_srtmode_Off.webp"><img style="width:400px" src="https://docs.unrealengine.com/5.0/Images/RenderingFeatures/Lumen/TechOverview/2_ScreenTraces_srtmode_Off.webp"/></a></figure></div></div><p id="0bedcf36-1c84-4cf7-83f1-ed029394dcfb" class="">Lumen divides the GI into two parts, in the nearby distance, it will use screen space tracing to achieve better results. And for the other parts, Lumen will build a set of Cards to represent the scene, then use a signed distance field as an acceleration structure for fast tracing.</p><figure id="38a0d5ec-61dd-4cff-a106-9dc6cd6368cb" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2013.png"><img style="width:1600px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2013.png"/></a></figure><p id="5a80d28a-71bf-4da6-80cc-ea51fef2d3db" class="">The whole process contains many steps, I summrized as :</p><ol id="024d6b9b-01b4-4dab-9094-649ff999d564" class="numbered-list" start="1"><li>Build cards</li></ol><ol id="dcbe31cc-d564-480a-ab84-17d4e52262e0" class="numbered-list" start="2"><li>Trace from the cards&#x27; texel, update the cards&#x27; radiosity</li></ol><ol id="8d06e588-8d7f-4ea6-bf9a-6e9fd3867c39" class="numbered-list" start="3"><li>During the LumenReflections stage, trace the cards with SDF</li></ol><p id="1e467161-f8f1-45a4-8b5a-0fc8c30e6f8c" class="">So, yes the cards&#x27; radiosity will be updated across many frames, which causes the latency when you change your lighting really fast.</p><figure id="8678cff6-0b2b-45af-9ef5-a4c179b113af" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2014.png"><img style="width:1141px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2014.png"/></a></figure><h2 id="9d734495-6823-4e7e-9dda-bff008bd3258" class="">Lumen Scene Lighting</h2><p id="930dcdbc-690c-4e65-a7e0-cf8e713f407f" class="">In this stage, Lumen update cards&#x27; shape, calculate radiosity and prepare for trancparency lighting.</p><p id="7a852204-9962-4a0a-9702-5bb704e7fcba" class="">The shape of the cards are changine based on the distance:</p><div id="6cf1db07-4e6f-44f1-a486-a4c7035f7ef2" class="column-list"><div id="7d340fa0-5f87-4d8e-a235-0646a76bd78e" style="width:33.333333333333336%" class="column"><figure id="dc071217-8269-4982-a260-879a51da54fc" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2015.png"><img style="width:997px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2015.png"/></a></figure></div><div id="1cb0d716-fcc2-410e-997a-c6377c3f3cca" style="width:33.33333333333333%" class="column"><figure id="c1fcab10-1e4e-419a-8155-d8432755c401" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2016.png"><img style="width:551px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2016.png"/></a></figure></div><div id="9cdc0f94-581d-4fa1-8376-9ab897d311a5" style="width:33.33333333333335%" class="column"><figure id="374a0250-6c89-4f36-817b-82c55fea77c6" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2017.png"><img style="width:240px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2017.png"/></a></figure></div></div><p id="1a068e9b-755c-4f7e-a46d-a7f05a3a45ce" class="">Also the surface texture resolution is also changing. </p><div id="99e0fc58-a81d-49da-9df2-b54d1634ed98" class="column-list"><div id="c0f3d0ef-f587-4c09-9423-8c538c4f55b8" style="width:50%" class="column"><figure id="756a0cc8-3781-4904-a469-109119d46bed" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2018.png"><img style="width:900px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2018.png"/></a></figure></div><div id="2160522e-50be-4501-a4aa-407bd4f8f7fe" style="width:50%" class="column"><figure id="279457ee-c06e-43f1-9b08-5e0bce16aa79" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2019.png"><img style="width:580px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2019.png"/></a></figure></div></div><p id="d8ff215b-159f-44ec-96d6-c912689d60fc" class="">The Lumen contains a set of Atlas textures, and works like a virtual texture system.</p><figure id="cdf401cf-8b33-4c7d-a630-7004c18b2c4a" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2020.png"><img style="width:1556px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2020.png"/></a></figure><h2 id="2af87bc1-6e30-40b7-a09a-7c4e86916bd8" class="">Lumen Indirect Lighting And AO</h2><p id="a3514aec-8dc0-4d17-8501-6b00d3ef4725" class="">Then, in order to create the indirect lighting and AO for both dynamic and static objects, Lumen separates the process into two parts: screen space probe pass and reflection pass.</p><p id="36f54bed-1f85-4d10-bff8-f7cf48b4f96e" class="">(Remind: I&#x27;m still working on the details of those passes so please forgive me for not discussing many details)</p><p id="9d0240f1-45fe-4fba-92e6-97c5403f4041" class="">First, it will do the screen space tracing:</p><figure id="6df4abaf-fe0b-48d5-9e69-83d973cd57cc" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2021.png"><img style="width:380px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2021.png"/></a></figure><p id="6ea58267-a84b-40e6-9d47-2e6ff13a5795" class="">The result is really noisy.</p><p id="147d5870-ea34-4363-a1b1-de8855edf2ad" class="">Then, Lumen will trace the meshes&#x27; SDF. </p><div id="b7b8f1bb-902a-4dd1-998c-a0871b4435ac" class="column-list"><div id="3365f0b7-1f32-4d8f-bc39-7afdccf06cf3" style="width:50%" class="column"><figure id="9a573bb0-66e2-4c44-b381-d6039275685a" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2022.png"><img style="width:720px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2022.png"/></a></figure></div><div id="7eead260-a851-4687-927d-fdad760acb27" style="width:50%" class="column"><figure id="777f1da0-6b7f-48d4-a5f4-6dedca8e0054" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2023.png"><img style="width:801px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2023.png"/></a></figure></div></div><p id="21f62a15-b566-4bbf-8004-c6a77d8aadbf" class="">Then, it will trace the voxels:</p><figure id="bdb57747-6779-48cf-b083-4b266617b0ce" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2024.png"><img style="width:836px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2024.png"/></a></figure><p id="3066163f-92f6-41b7-b892-f24f847628e0" class="">After the reflection resolve pass, the result looks like this:</p><figure id="b07b225d-577f-4a00-94c4-cd0baf713458" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2025.png"><img style="width:896px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2025.png"/></a></figure><p id="61618d2b-2fe6-4a23-8f13-7c4a449442d7" class="">Finally, with temporal reprojection to reuse the temporal info, the result will be really smooth and noiseless:</p><figure id="bc52e939-7718-41a0-b7fd-0dbe016e0363" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2026.png"><img style="width:869px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2026.png"/></a></figure><h2 id="681a0ce9-5eb5-42d6-b3fc-89440d54cbac" class="">Tracing With SDF</h2><p id="2d7f5eaa-0d23-44c4-b2c7-324f1a23041d" class="">In order to make the ray tracing much faster, the core idea is to skip the huge empty space. So Lumen uses a signed distance field to achieve this. And just like the official documents said, it contains 2 parts: global distance field and mesh distance field. </p><figure id="9ec8e311-7bdd-4c6b-b775-a24114607141" class="image"><a href="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2027.png"><img style="width:413px" src="Brief%20Analysis%20of%20UE5%20Rendering%20Pipeline%20d28218a5c1374cbc93a50d05c9a8639b/Untitled%2027.png"/></a></figure><p id="eec0ac3c-e266-41f6-92e5-b1963661e7b9" class="">Each position in the SDF has the distance to the nearest surface. So this distance actually represent the &#x27;safe distance&#x27; for a ray to travel forward without worrying about hitting anything. Also for large empty space, the distance will be much higher so the ray will skip those space by small iteration.</p><p id="3550c273-2a58-4186-866b-9ef88f36fd08" class="">For the details about tracing with SDF, please check the DFAO and DFGI documents from Epic:</p><p id="c525cc9b-856c-4b36-a90c-cff9d6291673" class=""><a href="https://docs.unrealengine.com/4.26/en-US/BuildingWorlds/LightingAndShadows/MeshDistanceFields/">https://docs.unrealengine.com/4.26/en-US/BuildingWorlds/LightingAndShadows/MeshDistanceFields/</a></p><p id="748f9e28-678f-4d29-bff1-b3292c9e17ff" class="">For more code details, please check:</p><ul id="e10e5911-cfae-428b-9ee4-93336782a0c5" class="bulleted-list"><li>For the SDF tracing part :RayTraceSingleMeshSDF function in LumenTracingCommon.ush.</li></ul><ul id="c39191d0-8b74-41bc-abde-1deacb579ff5" class="bulleted-list"><li>After get the SDF traced result, how to fetch card data: SampleLumenMeshCards in LumenTracingCommon.ush</li></ul><p id="76f53563-bd8d-47f1-a4de-86117506a105" class="">
+</p><h1 id="54dc263b-2ae4-44c6-bb4e-62444e12a68e" class="">Reference</h1><ol id="c35bf59f-251c-4370-b436-445829a909b0" class="numbered-list" start="1"><li><a href="https://docs.unrealengine.com/5.0/en-US/RenderingFeatures/">https://docs.unrealengine.com/5.0/en-US/RenderingFeatures/</a></li></ol><ol id="f50b6c05-db6f-44aa-8155-4322cfa5bf7a" class="numbered-list" start="2"><li><a href="https://unrealartoptimization.github.io/book/pipelines/pixel/">https://unrealartoptimization.github.io/book/pipelines/pixel/</a></li></ol><p id="cd1fba9b-df6c-4b94-8104-906df60c3cc1" class="">
+</p></div></article></body></html>
