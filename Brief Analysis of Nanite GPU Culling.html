@@ -1,0 +1,633 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>Brief Analysis of Nanite GPU Culling</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 3px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+}
+
+@page {
+	margin: 1in;
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.column-list {
+	display: flex;
+	justify-content: space-between;
+}
+
+.column {
+	padding: 0 1em;
+}
+
+.column:first-child {
+	padding-left: 0;
+}
+
+.column:last-child {
+	padding-right: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+	border-collapse: collapse;
+}
+
+table {
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	text-indent: -1.7em;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-block;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.5em 1em;
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1.25em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, YuMincho, "Yu Mincho", "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Songti TC", "Songti SC", "SimSun", "Nanum Myeongjo", NanumMyeongjo, Batang, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC', 'Noto Sans CJK KR'; }
+
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC', 'Noto Sans Mono CJK KR'; }
+
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, YuMincho, "Yu Mincho", "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Songti TC", "Songti SC", "SimSun", "Nanum Myeongjo", NanumMyeongjo, Batang, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC', 'Noto Sans CJK KR'; }
+
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC', 'Noto Sans Mono CJK KR'; }
+
+.highlight-default {
+}
+.highlight-gray {
+	color: rgb(155,154,151);
+}
+.highlight-brown {
+	color: rgb(100,71,58);
+}
+.highlight-orange {
+	color: rgb(217,115,13);
+}
+.highlight-yellow {
+	color: rgb(223,171,1);
+}
+.highlight-teal {
+	color: rgb(15,123,108);
+}
+.highlight-blue {
+	color: rgb(11,110,153);
+}
+.highlight-purple {
+	color: rgb(105,64,165);
+}
+.highlight-pink {
+	color: rgb(173,26,114);
+}
+.highlight-red {
+	color: rgb(224,62,62);
+}
+.highlight-gray_background {
+	background: rgb(235,236,237);
+}
+.highlight-brown_background {
+	background: rgb(233,229,227);
+}
+.highlight-orange_background {
+	background: rgb(250,235,221);
+}
+.highlight-yellow_background {
+	background: rgb(251,243,219);
+}
+.highlight-teal_background {
+	background: rgb(221,237,234);
+}
+.highlight-blue_background {
+	background: rgb(221,235,241);
+}
+.highlight-purple_background {
+	background: rgb(234,228,242);
+}
+.highlight-pink_background {
+	background: rgb(244,223,235);
+}
+.highlight-red_background {
+	background: rgb(251,228,228);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(55, 53, 47, 0.6);
+	fill: rgba(55, 53, 47, 0.6);
+}
+.block-color-brown {
+	color: rgb(100,71,58);
+	fill: rgb(100,71,58);
+}
+.block-color-orange {
+	color: rgb(217,115,13);
+	fill: rgb(217,115,13);
+}
+.block-color-yellow {
+	color: rgb(223,171,1);
+	fill: rgb(223,171,1);
+}
+.block-color-teal {
+	color: rgb(15,123,108);
+	fill: rgb(15,123,108);
+}
+.block-color-blue {
+	color: rgb(11,110,153);
+	fill: rgb(11,110,153);
+}
+.block-color-purple {
+	color: rgb(105,64,165);
+	fill: rgb(105,64,165);
+}
+.block-color-pink {
+	color: rgb(173,26,114);
+	fill: rgb(173,26,114);
+}
+.block-color-red {
+	color: rgb(224,62,62);
+	fill: rgb(224,62,62);
+}
+.block-color-gray_background {
+	background: rgb(235,236,237);
+}
+.block-color-brown_background {
+	background: rgb(233,229,227);
+}
+.block-color-orange_background {
+	background: rgb(250,235,221);
+}
+.block-color-yellow_background {
+	background: rgb(251,243,219);
+}
+.block-color-teal_background {
+	background: rgb(221,237,234);
+}
+.block-color-blue_background {
+	background: rgb(221,235,241);
+}
+.block-color-purple_background {
+	background: rgb(234,228,242);
+}
+.block-color-pink_background {
+	background: rgb(244,223,235);
+}
+.block-color-red_background {
+	background: rgb(251,228,228);
+}
+.select-value-color-default { background-color: rgba(206,205,202,0.5); }
+.select-value-color-gray { background-color: rgba(155,154,151, 0.4); }
+.select-value-color-brown { background-color: rgba(140,46,0,0.2); }
+.select-value-color-orange { background-color: rgba(245,93,0,0.2); }
+.select-value-color-yellow { background-color: rgba(233,168,0,0.2); }
+.select-value-color-green { background-color: rgba(0,135,107,0.2); }
+.select-value-color-blue { background-color: rgba(0,120,223,0.2); }
+.select-value-color-purple { background-color: rgba(103,36,222,0.2); }
+.select-value-color-pink { background-color: rgba(221,0,129,0.2); }
+.select-value-color-red { background-color: rgba(255,0,26,0.2); }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+	
+</style></head><body><article id="6ea4a7b8-a357-4f31-bb40-95901fc8e309" class="page sans"><header><h1 class="page-title">Brief Analysis of Nanite GPU Culling</h1></header><div class="page-body"><p id="920d6b24-f216-433d-8f9f-dc7d697ae1c2" class="">Author: <a href="https://twitter.com/ldl19691031">https://twitter.com/ldl19691031</a></p><p id="269dd060-b8cb-401e-8a1f-47a6b88467c8" class="">In this article, I try to analyze the detailed culling process of Nanite. If you are not familiar with how Nanite works, please check these 2 articles I wrote before : <div class="indented"><p id="8bebc50f-f831-4987-99a7-564a16e99015" class="">The whole pipeline of UE5:  <a href="https://www.notion.so/Brief-Analysis-of-UE5-Rendering-Pipeline-feedcb9174aa4af2af936fbb02a9e390">https://www.notion.so/Brief-Analysis-of-UE5-Rendering-Pipeline-feedcb9174aa4af2af936fbb02a9e390</a></p><p id="ae4825c0-f5db-4b51-9246-506105e23325" class="">The brief analysis of Nanite: <a href="https://www.notion.so/Brief-Analysis-of-Nanite-94be60f292434ba3ae62fa4bcf7d9379">https://www.notion.so/Brief-Analysis-of-Nanite-94be60f292434ba3ae62fa4bcf7d9379</a></p></div></p><p id="636744d4-f136-4d16-8f14-c1dbeb54d498" class=""><strong>Warning: I&#x27;m not a developer of Epic Games. This article may contain mistakes although I will try to fix the mistakes as soon as possible. If I mislead you, please forgive me.</strong></p><p id="d9281106-70d2-4ea7-af89-788effcf2703" class="">And, this article contains many implementation details. If you do not have interest of the detail implementation, I think you can skip this one.</p><h1 id="2c81786a-93bb-4d3d-88dd-e6cda10d89eb" class="">Before We Start</h1><p id="e0b26ee8-735d-433c-9380-ca23adffe968" class="">As we discussed in &#x27;The brief analysis of Nanite&#x27;, the Nanite will create a tree contains two different kinds of nodes: HierarchyNode, which contains a set of children, and the cluster nodes, which contains cluster parts. They also have their own bounds for culling. This article focus on HOW the culling has been executed instead of WHY Nanite does like this. If you want to know more about the reasons, please read &#x27;The brief analysis of Nanite&#x27;.</p><p id="39ab0cab-9c73-4b05-ac6b-18de8d403f10" class="">The culling system contains two-level: <strong>instance</strong> level and <strong>persistent </strong>level. Since there are many other articles talked about instance culling both in Unreal Engine and in other engines, This article focus on the second one, about how to cull the small parts of a high poly Nanite mesh.</p><p id="ca654b2e-0d35-40b7-8369-ce242d050e41" class="">Nanite highly uses the compute shader&#x27;s group share memory systems, so I will explain the GPU memory model a little. If you already know, just skip the following part.</p><h2 id="7be85767-cc88-4b6e-97d3-c535bfbfb870" class="">GPU Execution Model</h2><blockquote id="c1a07715-5948-4431-b179-54a218034b2f" class="">A compute shader can execute on many threads in parallel, within a thread group.</blockquote><p id="c237424e-5168-4961-8cb1-57753edb5a52" class="">A set of threads are grouped and will be scheduled to run in parallel with the same instruction each time, which is a &#x27;Single instruction, multiple threads&#x27; model.</p><p id="dbf91726-1f03-46be-88fc-7f8721f49661" class="">So, there will be three kinds of memory that each thread can access: the global memory which is available for all threads in all groups; group shared memory, which is accessible for the threads in the same group, but not the same for different groups; and the local memory for each thread individually.</p><p id="5663bba7-0609-483d-b700-7043e922e483" class="">There are many better explanations of compute shader and GPU execution model, so if you want to read more, please check these:<div class="indented"><p id="c17324c1-5725-4177-a255-1e83b314ff77" class="">The life of triangle :<a href="https://developer.nvidia.com/content/life-triangle-nvidias-logical-pipeline">https://developer.nvidia.com/content/life-triangle-nvidias-logical-pipeline</a></p><p id="478a6e14-1ddf-4cac-8337-0ae047bda6d8" class="">Compute Shader: <a href="https://docs.microsoft.com/en-us/windows/win32/direct3d11/direct3d-11-advanced-stages-compute-shader">https://docs.microsoft.com/en-us/windows/win32/direct3d11/direct3d-11-advanced-stages-compute-shader</a></p></div></p><h2 id="96b8de84-53ea-4e37-a3e3-cc5881db4545" class="">The Problem</h2><p id="151b1b9d-d793-4e03-852d-258f2a87a1db" class="">Nanite need to solve a problem: <span style="border-bottom:0.05em solid">how to culling a tree structure parallelly and as fast as possible</span>?</p><figure id="9616ca32-285f-41b0-a420-c7172e5096f8" class="image"><a href="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/Untitled.png"><img style="width:536px" src="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/Untitled.png"/></a></figure><p id="acb43ec4-604b-4b8d-b094-a08bd0de7fae" class="">If we map all the threads to all the tree nodes, of course, they are paralleled but also there are many threads that are wasted: if a parent node has been culled, no need to check the child.</p><p id="f5de5cc7-ea66-4ac9-b59a-a04622a9290f" class="">But in the other hand, if we dynamiclly map threads to current levels nodes, then we need to keep allocating new threads because each level&#x27;s nodes are in different number. </p><p id="b21b697c-bcfd-48cc-be73-a141ceb0bd02" class="">So, Nanite build a Multi-Producer-Multi-Customer model as an answer to the problem.</p><blockquote id="21fb54fb-55bc-477f-b8d2-4b015eda57d4" class="">Instead of spawning new threads, new jobs are added to the queue to be consumed by workers. Initially, the queue is populated with work generated by preceding shader passes.
+When the persistent shader is running, its workers will continuously consuming items from the queue, but also produce new items.</blockquote><p id="817d9006-52ae-4069-81ed-6b975ee772be" class="">In the following parts of this article, I will talk more details about how this MPMC system works.</p><h1 id="908f74a8-efec-4713-ae37-ab729cd3a47b" class="">MPMC Persistent Culling</h1><p id="27742bf3-125f-492a-9b55-66fae197b8d2" class="">As a brief summary of the whole process:</p><h2 id="7aa8a951-4041-462e-92bb-300a6b1f628f" class="">Two pre-conditions</h2><ul id="08015c64-fb38-4848-aee0-b65b4c3f9602" class="bulleted-list"><li>Each thread has two modes : node culling and cluster culling</li></ul><ul id="2ec0c4d5-1389-44ef-a221-e21bbbe8a6a2" class="bulleted-list"><li>In the tree, each node&#x27;s max children num is 8</li></ul><h2 id="d7413f8b-42a5-43fc-82e7-06503eaaca0a" class="">Structure</h2><ul id="9c1c7134-0ee0-40c0-b618-ab07252c6f7a" class="bulleted-list"><li>A global candidate buffer: each thread can write potential nodes and clusters during processing. And also can pick potential nodes and clusters from this buffer.</li></ul><ul id="dece3174-817d-4ddc-b742-7d8e11151f03" class="bulleted-list"><li>Interlocked operation: but if each node directly writes and reads data from the global buffer, it will be a huge time cost for atomic operation. So, instead, each group will have a leader to grab the data for this group, by an atomic modification of the node/cluster read and write offset. <figure id="683ed667-9600-4441-852a-56ec1cb7e3c3" class="image"><a href="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/naniteCulling.jpg"><img style="width:571px" src="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/naniteCulling.jpg"/></a></figure></li></ul><h2 id="059b14e4-2271-4fac-be8a-76a760c338cf" class="">Processing</h2><p id="6eb0d7d3-a2ce-408c-9007-90d46cdba006" class="">The whole processing has two parts: culling and syncing. <div class="indented"><p id="766ce31d-5751-4542-b8c7-430e9f9ab84d" class="">For the culling, there are two modes:<div class="indented"><p id="67ae3d71-f3a7-4def-9519-5277eff57fed" class="">Node Cull : culling non-leaf nodes which have node children</p><p id="07fedd8c-8792-4447-b251-599d0fc2cce2" class="">Cluster Cull : culling leaf nodes which have cluster children</p></div></p><p id="47488520-a208-451f-b5b7-899c7d38bd4d" class="">For the syncing:<div class="indented"><p id="4045f4a9-50d1-4e57-92ac-f6b5cad5e6ec" class="">Group-wise sync : deal with group shared buffers</p><p id="2f2b9da8-5a5b-4975-a265-e22e5b683547" class="">Global sync : deal with global cross-group buffers</p></div></p></div></p><p id="23edffaa-8882-419b-8594-229eb7b1c789" class="">This is the detail of the processing. In order to divide the sync and async codes, I will put a ⏬ before parallel processing, and a 🔽 before a sync processing (by the thread with group index 0 or interlocked operations)</p><ul id="6e0932af-f3cd-4d2d-86cd-586b8e908ac7" class="bulleted-list"><li>For each group (which has 64 threads in my test environment):<ul id="577dbef8-9142-4f1e-be16-e2bb4689e628" class="bulleted-list"><li>The first thread in the group grab 8 nodes from the global nodes pool </li></ul><ul id="cf9cc946-32e0-45b9-8789-309b0574d93e" class="bulleted-list"><li>The first 8 threads check and copy the valid nodes to the group shared nodes data buffer parallelly</li></ul><ul id="9fb2781e-4f9b-478b-ab00-25f7fcbf039d" class="bulleted-list"><li>Node Cull: the default cull mode<figure id="033b2647-8425-4455-a9e3-a00dd07f55aa" class="image"><a href="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/NaniteGPUCullNode-MiniMapOfAll.jpg"><img style="width:723px" src="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/NaniteGPUCullNode-MiniMapOfAll.jpg"/></a></figure><ul id="f38b6445-c44a-4032-b668-2749a312794a" class="bulleted-list"><li>For a group that contains 64 threads, every 8 threads have a common local node index, with individual children index. This maps these 64 threads into a subtree with 8 parents and 64 children. Let&#x27;s call them parent nodes and child nodes.<figure id="814d4995-a0a3-4a91-9c47-14043836e6ae" class="image"><a href="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/Untitled%201.png"><img style="width:758px" src="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/Untitled%201.png"/></a></figure></li></ul><ul id="05fc6aef-fef3-4c94-917f-ac1ce36f9794" class="bulleted-list"><li>⏬In the beginning, every thread fetches a child node based on a local index as parent index and child index. <ul id="dec1c62b-c59a-4074-9f9b-aff27a82af71" class="bulleted-list"><li>Execute the frustum cull and HZB cull. </li></ul><ul id="724ed25d-6baa-4d29-a9f0-81b797cef993" class="bulleted-list"><li>Based on the target error, determine if the children also need to be processed ( for the details of this part, please check <a href="https://www.notion.so/Brief-Analysis-of-Nanite-94be60f292434ba3ae62fa4bcf7d9379">The Brief Analysis of Nanite</a>)</li></ul></li></ul><ul id="894efdf2-bd3b-4507-a333-a6ec0a32dba4" class="bulleted-list"><li>🔽Memory Sync: count visible nodes inside group (with wave interlock opt) and move the global node write offset, increase the node write count.
+This actually &#x27;allocates&#x27; the writing space for the visible nodes. </li></ul><ul id="f6dcb172-7a09-4b6e-812d-5321add00731" class="bulleted-list"><li>⏬ Write out nodes:<figure id="2a578c15-c248-4d24-af15-6e7b02fb1305" class="image"><a href="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/NaniteGPUCullNode-WriteOutDetail.jpg"><img style="width:715px" src="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/NaniteGPUCullNode-WriteOutDetail.jpg"/></a></figure><ul id="035ce61a-8d42-4e4d-a7c7-e85b6fbc7c7c" class="bulleted-list"><li>If the node is not leaf node: write out the node data.<p id="43b71d84-9888-4d52-afc0-a10edef7d7d3" class="">Here is a small trick : the order is important. The node cull has higher priority. So we will write the node data as quickly as possible to let other groups can pick the new jobs as early as possible.</p></li></ul><ul id="ecbdfe2b-a644-44e7-be6f-48d5bf60f246" class="bulleted-list"><li>If the node is a leaf node that contains clusters: write out <strong>only the first cluster</strong> because we can construct the other clusters based on this cluster&#x27;s info. This will save much memory sync time.<blockquote id="8714cc57-bf6d-4d01-ad41-71e819b1f561" class="">Clusters in a group are consecutive. Instead of writing them all, we only write the first cluster in each PERSISTENT_CLUSTER_CULLING_GROUP_SIZE-sized batch the group is a part of. The cluster culling can infer the rest using bitscan.</blockquote><ul id="77f32c80-0ef0-42fa-8e8c-e40f1f11134f" class="bulleted-list"><li>Also, it will generate a page request for CPU read back to load the cluster page data.</li></ul></li></ul></li></ul><ul id="f2cc669f-70b0-4c19-b671-52d2e56a2c50" class="bulleted-list"><li>Cluster Cull<ul id="e9b6e096-9f25-4456-9383-66172ba1684a" class="bulleted-list"><li>Enter condition: <ol id="bc4c08c4-6b35-44a1-a930-3a16066a7a85" class="numbered-list" start="1"><li>bProcessNode == false : this means current thread will never return to node cull mode. Usually happens when this group cannot grab any new nodes</li></ol><ol id="d9cdf533-5108-4bc3-8534-3032e4f01418" class="numbered-list" start="2"><li>Try to grab a batch of clusters, if the cluster number is larger than 64 then do a temporal cluster culling after Node Cull finished each loop.</li></ol></li></ul><ul id="059eaba4-60f3-4fea-b115-77b504dce5c8" class="bulleted-list"><li>⏬In the beginning, like Node Cull, each thread grabs a cluster from the global buffer. (This step is actually a little complex, if you want to check more, please read ProcessClusterBatch function in ClusterCulling.usf). <ul id="d1cea5b3-3a91-4fda-b219-9e0d3c1ad78a" class="bulleted-list"><li>This time we have 64 clusters each group, instead of 8 x 8 in node culling.</li></ul></li></ul><ul id="22ca4e3a-e7a6-4683-a2f6-34d953328d10" class="bulleted-list"><li>⏬Now each thread starts culling: frustum culling, HZB culling, and check if this cluster is small enough to draw. The last one is important since it will avoid cluster overlap. Again, in <a href="https://www.notion.so/Brief-Analysis-of-Nanite-94be60f292434ba3ae62fa4bcf7d9379">The Brief Analysis of Nanite</a>, I explained more about the theory so I just skip the details.</li></ul><ul id="521e9795-f801-4f38-826e-8fea721c5ed3" class="bulleted-list"><li>⏬Another important work is determining the rasterizer mode: hardware or software, based on these conditions:<ol id="8394ee59-5bba-49c4-8fb5-9e264773ebed" class="numbered-list" start="1"><li>In the SmallEnoughToDraw function, based on the cluster screen space size, we decide the rasterizer mode.</li></ol><ol id="e4c47a8b-0fca-4e6b-9e56-36c702924a50" class="numbered-list" start="2"><li>If the cluster crosses near or far plane ( sorry I don&#x27;t know the reason, if you know please tell me! I guess the reason is the hardware clip is faster than software)</li></ol></li></ul><ul id="68deafd9-8064-45fd-b865-2d65e3115970" class="bulleted-list"><li>🔽Based on the rasterizer mode, increase the coresponed counter</li></ul><ul id="e4ed557a-bf4a-476e-ad0b-e3fbcdda8a50" class="bulleted-list"><li>⏬ Write the cluster info to OutVisibleClustersSWHW, finish this cluster culling loop. </li></ul></li></ul></li></ul></li></ul><h1 id="d72d485c-1f55-4a39-b53d-f93be55d8233" class="">Details</h1><p id="fbd58beb-3ffd-4244-bf16-a73e2aad9c23" class="">In this part, I will discuss some details inside the previous part. </p><p id="77f96a28-d6a6-4a3d-bf3d-e8191396e272" class="">If you are familiar with GPU-Driven pipelines, you can skip this part. </p><h2 id="0b03beca-5d6e-454d-89d5-c652d43affe8" class="">Cluster Culling</h2><p id="cffdb1f3-1038-467f-92ab-b32a13afb147" class="">A cluster is visible when:</p><ul id="b27fb819-4741-40e7-b554-68b97bbaf08e" class="bulleted-list"><li>The cluster&#x27;s rect is large enough to cover a pixel center. (SmallEnoughToDraw)<ul id="ca046fc3-5ea9-4bf9-aab9-5008ba9fdc30" class="bulleted-list"><li>Will this cause a hole on one pixel? No, since a larger cluster will be selected to cover this pixel.</li></ul></li></ul><ul id="f4f1edcb-f189-45b7-a4cb-55e5b592cefc" class="bulleted-list"><li>Pass the frustum culling</li></ul><ul id="6b5549aa-c693-4937-bd45-faa81f21edc3" class="bulleted-list"><li>Pass the HZB culling</li></ul><h2 id="318c7559-7099-4a34-8360-2f8fb20ca1d0" class="">2 Phase Culling</h2><p id="21f585da-bbce-4528-9e17-108ea15c3724" class="">Considering the complexity, I skipped the 2 phase culling related parts in the processing part but now it&#x27;s the time to discuss a little more.</p><figure id="8d26f22a-d607-4418-a329-059bea62954d" class="image"><a href="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/Untitled%202.png"><img style="width:280px" src="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/Untitled%202.png"/></a></figure><p id="f6932a3e-2d71-4fe5-8f10-fde7c1bac4a9" class="">Nanite actually have two pharses of culling : Main Pass and Post Pass:</p><ul id="718e6c85-182f-4dab-a121-ddf970186589" class="bulleted-list"><li>In the main pass, uses HZB buffer in the last frame</li></ul><ul id="ac1246c1-821f-49ab-b72e-da25070edb45" class="bulleted-list"><li>Do the rasterize, get the new depth buffer</li></ul><ul id="99bcfd7e-a15d-4c41-8660-dbaee22b0843" class="bulleted-list"><li>Use the new depth buffer to build a new HZB pyramid</li></ul><ul id="2ec57654-f9fe-42b0-8bb5-c6af3cdd53b5" class="bulleted-list"><li>Do the cull again, find the false negatives, rasterizer again</li></ul><p id="3452db79-d649-498f-93aa-7ae860d8090e" class="">This is the same as the two-phase occlusion culling in Ubisoft&#x27;s GPU Driven engine:</p><figure id="99a41610-2035-4af3-9ab2-1ec75cd9ec9b" class="image"><a href="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/Untitled%203.png"><img style="width:878px" src="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/Untitled%203.png"/></a></figure><p id="9b504668-f8db-48b6-84a3-d5291ffd3633" class="">(From <a href="http://advances.realtimerendering.com/s2015/aaltonenhaar_siggraph2015_combined_final_footer_220dpi.pdf">http://advances.realtimerendering.com/s2015/aaltonenhaar_siggraph2015_combined_final_footer_220dpi.pdf</a>)</p><p id="7f412668-564c-4edb-a756-d1a808e6a43b" class="">The motivation of two-phase occlusion culling is: </p><ul id="46ef5403-f71a-47ca-91e3-9db99e5c45ff" class="bulleted-list"><li>We need depth buffer (HZB) to get visible objects to draw</li></ul><ul id="900ec1dd-f80e-444c-aa04-c4b931bf0de6" class="bulleted-list"><li>We need to draw objects to get the depth buffer</li></ul><figure id="4bd55957-9724-4882-915b-4a320ae58867" class="image"><a href="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/Untitled%204.png"><img style="width:240px" src="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/Untitled%204.png"/></a></figure><p id="c259d121-b6bb-4dad-accc-31dffe88e517" class="">So this is terrible. A solution is, use the previous frame&#x27;s depth buffer to build the HZB, then use that to cull. Of course, this may cause a problem: because the buffer is old, we may falsely cull some objects. 
+</p><div id="29bfb8aa-7f9a-4d05-9e10-5d09f4e5d6e4" class="column-list"><div id="cb608e17-64e9-4339-b626-00f58bdef25c" style="width:50%" class="column"><figure id="8d277d55-3b6c-42d7-85a0-4b1d3ec1ce1d" class="image"><a href="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/Untitled%205.png"><img style="width:404px" src="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/Untitled%205.png"/></a></figure></div><div id="aedd9133-36c1-4fcf-b501-5f96247893db" style="width:50%" class="column"><p id="f3ac8f31-be04-48e6-bfb1-5babefa369e3" class="">In the previous frame, a cube has covered the red sphere. In the current frame the cube has been destroyed. But if we use the old HZB buffer, the red sphere will be invisible. This is wrong.</p></div></div><p id="7be88231-09b9-462e-b1af-5d7e245e6729" class="">But still, we will got a roughly right depth buffer. So we can build a HZB again. Then we test the occluded objects again, to find out if there are some objs are visible based on new HZB buffer.</p><p id="6218ed2a-a56f-41b3-8a66-7f4c9dc1279b" class="">The details of Nanite&#x27;s implementation of this part is:</p><figure id="bb64a8b8-814c-445b-b545-d396d7dae263" class="image"><a href="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/NaniteGPUCullNode-2Phase.jpg"><img style="width:879px" src="Brief%20Analysis%20of%20Nanite%20GPU%20Culling%209616ca32285f41b0a420c7172e5096f8/NaniteGPUCullNode-2Phase.jpg"/></a></figure><p id="329feddb-ef0c-438d-88c7-11981ef9c712" class="">
+</p><h1 id="17524db3-a9ae-4dd8-b119-bea977a8fd8a" class="">Thanks!</h1><p id="0899d1db-b4ac-43cf-8443-4903aef4257f" class="">Thanks to everyone who loves my notes. I tried my best to keep the content right, but again, if I made mistakes, please forgive me. If this article helps you a little, I will be really happy.</p><p id="f6fcccb3-da14-4662-9d3c-086b6d5a409e" class="">And thanks to everyone who are writing analysis of Unreal Engine 5. Your articles help me a lot. </p><p id="3a9a7a8c-0041-4d25-8dea-eb479ec14144" class="">Thanks to Epic Games for creating such a great system, and open-sourced that everyone can access and learn. </p><h1 id="f0aa59a9-facc-42f8-bad2-b42900e334b4" class="">References</h1><ol id="43302d02-c3e8-4fb3-8690-aa66b8518cfd" class="numbered-list" start="1"><li>Another really good analysis of Nanite GPU Culling System (Chinese) <a href="https://t.co/4R1V7XnoIX?amp=1">https://t.co/4R1V7XnoIX?amp=1</a></li></ol><ol id="ab5c2e77-dafc-4c07-aa93-d7e8597201bc" class="numbered-list" start="2"><li><a href="https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ff471569(v=vs.85)">https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ff471569(v=vs.85)</a></li></ol><ol id="a3fe911e-c690-4191-8900-b64de83f751f" class="numbered-list" start="3"><li><a href="http://advances.realtimerendering.com/s2015/aaltonenhaar_siggraph2015_combined_final_footer_220dpi.pdf">http://advances.realtimerendering.com/s2015/aaltonenhaar_siggraph2015_combined_final_footer_220dpi.pdf</a></li></ol><p id="7abc114d-c36e-4586-8e30-4ba2be5cb395" class="">
+</p></div></article></body></html>
